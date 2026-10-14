@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기권의 층상 구조와 대기 안정도 탐구</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <span class="bg-indigo-500 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">중3 과학 · Ⅳ. 기권과 날씨</span>
+                    <h1 class="text-2xl md:text-3xl font-bold mt-2">기권의 층상 구조와 대기 안정도 탐구</h1>
+                </div>
+                <div class="bg-indigo-700/60 p-3 rounded-xl border border-indigo-400/30 text-sm max-w-md">
+                    <p class="font-medium text-indigo-100">🎯 학습 목표:</p>
+                    <p class="text-indigo-200 mt-0.5">높이에 따른 기온 분포에 따라 기권이 4개의 층으로 나뉘는 이유를 대류 현상의 유무와 관련지어 설명할 수 있다.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-8 w-full space-y-12">
+
+        <!-- Section 1: Virtual Simulation -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <div class="border-b border-slate-100 pb-4 mb-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold">1</span>
+                    가상실험: 고도별 기온 변화와 대류 현상 시뮬레이션
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">슬라이더를 움직여 고도에 따른 기온 변화와 공기의 연직 운동(대류)을 관찰해 보세요.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Controls & Realtime Data (Left 5 cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <label for="altitudeSlider" class="block font-semibold text-slate-700 mb-2 flex justify-between">
+                            <span>고도 조작</span>
+                            <span id="altitudeVal" class="text-indigo-600 font-bold text-lg">0 km</span>
+                        </label>
+                        <input id="altitudeSlider" type="range" min="0" max="100" value="0" step="1" 
+                               class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                        <div class="flex justify-between text-xs text-slate-400 mt-2">
+                            <span>지표면 (0km)</span>
+                            <span>대류권경계(11km)</span>
+                            <span>성층권경계(50km)</span>
+                            <span>중간권경계(80km)</span>
+                            <span>열권(100km)</span>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Info Card -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                            <span class="text-xs text-indigo-600 font-semibold uppercase tracking-wide">현재 기권 층</span>
+                            <div id="layerName" class="text-xl font-bold text-slate-800 mt-1">대류권</div>
+                        </div>
+                        <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                            <span class="text-xs text-indigo-600 font-semibold uppercase tracking-wide">현재 기온</span>
+                            <div id="tempVal" class="text-xl font-bold text-slate-800 mt-1">15.0 ℃</div>
+                        </div>
+                    </div>
+
+                    <!-- Convection Status -->
+                    <div id="convectionBox" class="p-4 rounded-xl border transition-all duration-300 bg-emerald-50 border-emerald-200">
+                        <div class="flex items-center gap-3">
+                            <div id="convectionIcon" class="text-2xl">🌪️</div>
+                            <div>
+                                <h4 id="convectionTitle" class="font-bold text-emerald-800">대류 현상 활발</h4>
+                                <p id="convectionDesc" class="text-xs text-emerald-700 mt-0.5">아래쪽이 따뜻하고 위쪽이 차가워 공기가 활발하게 섞입니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphical Visualization (Right 7 cols) -->
+                <div class="lg:col-span-7 bg-slate-900 rounded-2xl p-6 text-white flex flex-col justify-between relative overflow-hidden min-h-[380px]">
+                    <div class="absolute top-3 right-4 text-xs text-slate-400 font-mono">대기 고도-기온 모델 그래프</div>
+                    
+                    <!-- Graph Canvas / Visual Representation container -->
+                    <div class="my-auto relative h-64 flex items-center justify-center">
+                        <!-- Layer Background bands indicator -->
+                        <div class="absolute inset-0 flex flex-col justify-between text-[11px] text-slate-500 font-mono pointer-events-none select-none opacity-40 border-l border-slate-700 pl-2">
+                            <span>100 km (열권)</span>
+                            <span>80 km (중간권경계)</span>
+                            <span>50 km (성층권경계)</span>
+                            <span>11 km (대류권경계)</span>
+                            <span>0 km (지표면)</span>
+                        </div>
+
+                        <!-- SVG Graph curve mockup -->
+                        <svg class="w-full h-full" viewBox="0 0 300 200" preserveAspectRatio="none">
+                            <!-- Temperature axis grid lines -->
+                            <line x1="50" y1="0" x2="50" y2="200" stroke="#334155" stroke-dasharray="3 3"/>
+                            <line x1="150" y1="0" x2="150" y2="200" stroke="#334155" stroke-dasharray="3 3"/>
+                            <line x1="250" y1="0" x2="250" y2="200" stroke="#334155" stroke-dasharray="3 3"/>
+
+                            <!-- Temperature Profile Curve -->
+                            <!-- Troposphere: (150, 180) to (220, 140) [Temp drops as altitude rises] -->
+                            <!-- Stratosphere: (220, 140) to (120, 80) [Temp rises as altitude rises] -->
+                            <!-- Mesosphere: (120, 80) to (240, 30) [Temp drops as altitude rises] -->
+                            <!-- Thermosphere: (240, 30) to (100, 10) [Temp rises sharply] -->
+                            <path d="M 150 180 L 220 135 L 110 75 L 240 25 L 90 5" 
+                                  fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+                            
+                            <!-- Dynamic Indicator Dot -->
+                            <circle id="graphDot" cx="150" cy="180" r="6" fill="#f43f5e" class="transition-all duration-100"/>
+                        </svg>
+
+                        <!-- Floating marker label -->
+                        <div id="floatingMarker" class="absolute bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded shadow transition-all duration-100" style="bottom: 5%; left: 45%;">
+                            현재 위치
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-slate-400 text-center mt-2 border-t border-slate-800 pt-3">
+                        💡 가로축: 기온 (왼쪽일수록 추움, 오른쪽일수록 따뜻함) / 세로축: 고도
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Self-Check Questions Inside Simulation -->
+            <div class="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Question 1 -->
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">스스로 답하기 Q1</span>
+                    <p class="text-sm font-medium text-slate-800">대류권과 중간권에서는 높이 올라갈수록 기온이 낮아지는데, 왜 이 층들에서는 대류 현상이 활발하게 일어날까요?</p>
+                    <textarea id="selfAns1" rows="2" placeholder="이곳에 내 생각을 입력해 보세요..." class="w-full text-sm p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <div class="flex justify-between items-center">
+                        <button onclick="checkSelfAnswer(1)" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition">정답 및 모범답안 확인</button>
+                        <span id="selfFeedback1" class="text-xs font-medium text-slate-500 hidden"></span>
+                    </div>
+                </div>
+
+                <!-- Question 2 -->
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">스스로 답하기 Q2</span>
+                    <p class="text-sm font-medium text-slate-800">성층권은 높이 올라갈수록 기온이 높아지는데, 이로 인해 대류가 일어나지 않는 이유는 무엇인가요?</p>
+                    <textarea id="selfAns2" rows="2" placeholder="이곳에 내 생각을 입력해 보세요..." class="w-full text-sm p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <div class="flex justify-between items-center">
+                        <button onclick="checkSelfAnswer(2)" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition">정답 및 모범답안 확인</button>
+                        <span id="selfFeedback2" class="text-xs font-medium text-slate-500 hidden"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Rules Footer Note -->
+            <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-center gap-2">
+                <span class="font-bold">📌 시뮬레이션 규칙 및 가정:</span>
+                <span>대류권은 지표면 복사에너지, 성층권은 오존층의 자외선 흡수, 열권은 태양 에너지 직접 흡수에 의해 기온이 변화하며, 아래쪽이 따뜻하고 위쪽이 차가울 때 대류가 일어납니다.</span>
+            </div>
+        </section>
+
+
+        <!-- Section 2: Concept Check Quiz -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <div class="border-b border-slate-100 pb-4 mb-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold">2</span>
+                    개념 확인 퀴즈 (오개념 바로잡기)
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">객관식 4지선다 문항을 풀고, 오답 선지에 숨겨진 흔한 오개념을 확인해 보세요.</p>
+            </div>
+
+            <div id="quizContainer" class="space-y-10">
+                <!-- Quiz questions will be injected here via JavaScript -->
+            </div>
+
+            <!-- Final Score & Report Area -->
+            <div id="finalReportArea" class="mt-10 hidden bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 text-center space-y-4">
+                <h3 class="text-xl font-bold text-indigo-900">🎉 퀴즈 완료 및 학습 피드백 리포트</h3>
+                <div id="scoreDisplay" class="text-3xl font-extrabold text-indigo-600"></div>
+                <div id="misconceptionSummary" class="text-sm text-slate-700 max-w-2xl mx-auto text-left bg-white p-4 rounded-xl border border-indigo-100"></div>
+                <button onclick="resetQuiz()" class="bg-indigo-600 text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition shadow-sm">퀴즈 다시 풀기</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-400">
+        <p>고등학교 3학년 과학 가상실험 학습 웹앱 &copy; 2026. All rights reserved.</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- 1. Simulation Logic ---
+        const slider = document.getElementById('altitudeSlider');
+        const altitudeVal = document.getElementById('altitudeVal');
+        const tempVal = document.getElementById('tempVal');
+        const layerName = document.getElementById('layerName');
+        const convectionBox = document.getElementById('convectionBox');
+        const convectionIcon = document.getElementById('convectionIcon');
+        const convectionTitle = document.getElementById('convectionTitle');
+        const convectionDesc = document.getElementById('convectionDesc');
+        const graphDot = document.getElementById('graphDot');
+        const floatingMarker = document.getElementById('floatingMarker');
+
+        function updateSimulation(alt) {
+            altitudeVal.innerText = alt + ' km';
+            
+            let temp = 15;
+            let layer = "";
+            let isConvective = false;
+            let desc = "";
+            let dotCx = 150, dotCy = 180, markerLeft = 45, markerBottom = 5;
+
+            if (alt <= 11) {
+                // Troposphere: 0 to 11 km (Temp drops from 15 to -56.5)
+                layer = "대류권 (Troposphere)";
+                temp = 15 - (alt * 6.5);
+                isConvective = true;
+                desc = "지표면에서 방출되는 열에 의해 아래쪽이 따뜻하고 위쪽이 차가워 대류 현상이 활발합니다.";
+                
+                // Map to SVG coordinates
+                dotCx = 150 + (alt * (70 / 11));
+                dotCy = 180 - (alt * (45 / 11));
+                markerLeft = 40 + (alt * 1.5);
+                markerBottom = 5 + (alt * 2.2);
+            } else if (alt <= 50) {
+                // Stratosphere: 11 to 50 km (Temp rises from -56.5 to -2)
+                layer = "성층권 (Stratosphere)";
+                temp = -56.5 + ((alt - 11) * 1.4);
+                isConvective = false;
+                desc = "오존층이 자외선을 흡수하여 위로 갈수록 기온이 높아지며, 대기가 안정하여 대류가 일어나지 않습니다. (비행기 항로)";
+                
+                dotCx = 220 - ((alt - 11) * (100 / 39));
+                dotCy = 135 - ((alt - 11) * (60 / 39));
+                markerLeft = 60 - ((alt - 11) * 0.8);
+                markerBottom = 28 + ((alt - 11) * 0.8);
+            } else if (alt <= 80) {
+                // Mesosphere: 50 to 80 km (Temp drops from -2 to -92)
+                layer = "중간권 (Mesosphere)";
+                temp = -2 - ((alt - 50) * 3.0);
+                isConvective = true;
+                desc = "위로 갈수록 기온이 낮아져 아래쪽이 따뜻하므로 대류 현상이 일어납니다. (기상 현상 X, 유성 관측)";
+                
+                dotCx = 120 + ((alt - 50) * (120 / 30));
+                dotCy = 75 - ((alt - 50) * (50 / 30));
+                markerLeft = 30 + ((alt - 50) * 1.2);
+                markerBottom = 58 + ((alt - 50) * 0.8);
+            } else {
+                // Thermosphere: 80 to 100 km (Temp rises from -92 to 1000+)
+                layer = "열권 (Thermosphere)";
+                temp = -92 + ((alt - 80) * 40.0);
+                isConvective = false;
+                desc = "태양 에너지를 직접 흡수하여 기온이 매우 높으며, 공기가 희박하고 밤낮의 기온 차가 큽니다. (오로라 발생)";
+                
+                dotCx = 240 - ((alt - 80) * (150 / 20));
+                dotCy = 25 - ((alt - 80) * (20 / 20));
+                markerLeft = 65 - ((alt - 80) * 1.5);
+                markerBottom = 82 + ((alt - 80) * 0.9);
+            }
+
+            tempVal.innerText = temp.toFixed(1) + " ℃";
+            layerName.innerText = layer;
+            graphDot.setAttribute('cx', dotCx);
+            graphDot.setAttribute('cy', dotCy);
+            floatingMarker.style.left = Math.max(5, Math.min(85, markerLeft)) + '%';
+            floatingMarker.style.bottom = Math.max(5, Math.min(90, markerBottom)) + '%';
+
+            if (isConvective) {
+                convectionBox.className = "p-4 rounded-xl border transition-all duration-300 bg-emerald-50 border-emerald-200";
+                convectionIcon.innerText = "🌪️";
+                convectionTitle.innerText = "대류 현상 활발 (불안정)";
+                convectionTitle.className = "font-bold text-emerald-800";
+                convectionDesc.innerText = desc;
+                convectionDesc.className = "text-xs text-emerald-700 mt-0.5";
+            } else {
+                convectionBox.className = "p-4 rounded-xl border transition-all duration-300 bg-blue-50 border-blue-200";
+                convectionIcon.innerText = "🛡️";
+                convectionTitle.innerText = "대류 현상 없음 (안정)";
+                convectionTitle.className = "font-bold text-blue-800";
+                convectionDesc.innerText = desc;
+                convectionDesc.className = "text-xs text-blue-700 mt-0.5";
+            }
+        }
+
+        slider.addEventListener('input', (e) => {
+            updateSimulation(parseInt(e.target.value));
+        });
+
+        // Initial setup
+        updateSimulation(0);
+
+        // Self-check answer feedback logic
+        function checkSelfAnswer(qNum) {
+            const feedbackSpan = document.getElementById(`selfFeedback${qNum}`);
+            feedbackSpan.classList.remove('hidden');
+            if (qNum === 1) {
+                feedbackSpan.innerText = "✔ 모범답안: 지표면(또는 오존층 아래)에서 가열된 공기가 위로 올라갈수록 아래쪽 온도가 높고 위쪽 온도가 낮아져 공기의 연직 운동(대류)이 쉽게 일어나기 때문입니다.";
+                feedbackSpan.className = "text-xs font-medium text-emerald-600";
+            } else {
+                feedbackSpan.innerText = "✔ 모범답안: 성층권은 아래쪽이 차갑고 위쪽이 따뜻한 안정한 구조여서 가벼운 공기가 위에, 무거운 공기가 아래에 있으므로 대류가 일어나지 않습니다.";
+                feedbackSpan.className = "text-xs font-medium text-emerald-600";
+            }
+        }
+
+
+        // --- 2. Quiz Data & Logic ---
+        const quizData = [
+            {
+                id: 1,
+                question: "대류권에서 높이 올라갈수록 기온이 낮아지는 주된 이유는 무엇인가요?",
+                options: [
+                    "태양과 가까워질수록 열을 덜 받기 때문에",
+                    "지표면에서 가열된 공기가 위로 올라갈수록 지표면과 멀어지기 때문에",
+                    "공기의 양이 많아져서 기압이 높아지기 때문에",
+                    "오존층이 존재하여 태양 빛을 차단하기 때문에"
+                ],
+                correctIndex: 1,
+                targetMisconception: "높이 올라갈수록 태양과 가까워지므로 기온이 높아질 것이다",
+                explanationTable: [
+                    { option: "태양과 가까워질수록 열을 덜 받기 때문에", isCorrect: false, studentThought: "지구에서 고도가 높아지면 우주(태양)에 더 가까워지므로 당연히 더 더워질 것이라고 생각함", correction: "지구의 기온은 태양과의 거리(km 단위)가 아니라, 지구 표면(지표면)에서 방출하는 복사 에너지를 얼마나 받느냐에 따라 결정됩니다." },
+                    { option: "지표면에서 가열된 공기가 위로 올라갈수록 지표면과 멀어지기 때문에", isCorrect: true, studentThought: "정답", correction: "대류권은 지표면이 흡수한 태양 에너지를 지중 방출하면서 가열되므로, 지표면과 멀어질수록 기온이 낮아집니다." },
+                    { option: "공기의 양이 많아져서 기압이 높아지기 때문에", isCorrect: false, studentThought: "고도가 높아지면 공기 양이 많아져서 압력이 커진다고 혼동함", correction: "고도가 높아질수록 공기의 양은 줄어들며 기압은 낮아집니다." },
+                    { option: "오존층이 존재하여 태양 빛을 차단하기 때문에", isCorrect: false, studentThought: "모든 기권의 현상을 오존층과 연관 지어 생각함", correction: "오존층은 대류권이 아니라 성층권에 주로 분포합니다." }
+                ]
+            },
+            {
+                id: 2,
+                question: "성층권에서 대류 현상이 일어나지 않는 이유는 무엇인가요?",
+                options: [
+                    "공기가 희박하여 기류가 안정되기 때문에",
+                    "구름과 비가 자주 내려 대기가 아래로 가라앉기 때문에",
+                    "아래쪽이 차갑고 위쪽이 따뜻하여 공기의 연직 운동이 일어나지 않기 때문에",
+                    "찬 공기가 아래에 있고 따뜻한 공기가 위에 있어서 공기가 무거워지기 때문에"
+                ],
+                correctIndex: 2,
+                targetMisconception: "성층권은 공기가 아래에 모여있어 무겁기 때문에 안 움직인다",
+                explanationTable: [
+                    { option: "공기가 희박하여 기류가 안정되기 때문에", isCorrect: false, studentThought: "공기 밀도가 낮아서 바람이 안 분다고 생각함", correction: "밀도보다는 기온 분포에 따른 밀도 차이(연직 온도 구배)가 대류 안정도를 결정합니다." },
+                    { option: "구름과 비가 자주 내려 대기가 아래로 가라앉기 때문에", isCorrect: false, studentThought: "기상 현상이 없으면 대기가 가라앉아 안 움직인다고 오해함", correction: "성층권은 수증기가 없어 기상 현상이 일어나지 않는 안정한 층입니다." },
+                    { option: "아래쪽이 차갑고 위쪽이 따뜻하여 공기의 연직 운동이 일어나지 않기 때문에", isCorrect: true, studentThought: "정답", correction: "성층권은 하부의 찬 공기가 무겁고 상부의 따뜻한 공기가 가벼우므로 안정한 상태를 유지하여 대류가 없습니다." },
+                    { option: "찬 공기가 아래에 있고 따뜻한 공기가 위에 있어서 공기가 무거워지기 때문에", isCorrect: false, studentThought: "찬 공기가 아래에 있으면 원래 안정한데 문장 구조를 혼동함", correction: "찬 공기가 아래에 있으면 대류가 활발하게 일어납니다(대류권의 경우)." }
+                ]
+            },
+            {
+                id: 3,
+                question: "기권을 4개의 층으로 나누는 기준은 무엇인가요?",
+                options: [
+                    "대기 중의 기체 성분(질소와 산소의 비율)이 달라지기 때문에",
+                    "높이에 따른 기온 분포의 변화 경향",
+                    "고도에 따른 기압의 변화가 일정하게 감소하기 때문에",
+                    "날씨 현상(구름, 비 등)이 나타나는지 여부만으로 구분"
+                ],
+                correctIndex: 1,
+                targetMisconception: "기권의 층은 공기 성분이나 날씨 변화 유무로 나뉜다",
+                explanationTable: [
+                    { option: "대기 중의 기체 성분(질소와 산소의 비율)이 달라지기 때문에", isCorrect: false, studentThought: "높은 곳은 산소가 부족하므로 기체 성분이 다를 것이라 생각함", correction: "하층부의 기체 성분 비율(질소 약 78%, 산소 약 21%)은 높이에 관계없이 거의 일정합니다." },
+                    { option: "높이에 따른 기온 분포의 변화 경향", isCorrect: true, studentThought: "정답", correction: "기권은 높이에 따른 기온 변화가 감소-증가-감소-증가하는 경향을 기준으로 4개 층으로 구분합니다." },
+                    { option: "고도에 따른 기압의 변화가 일정하게 감소하기 때문에", isCorrect: false, studentThought: "기압이 층마다 다르게 줄어든다고 생각함", correction: "기압은 고도가 높아질수록 모든 층에서 지속적으로 감소합니다." },
+                    { option: "날씨 현상(구름, 비 등)이 나타나는지 여부만으로 구분", isCorrect: false, studentThought: "날씨가 있는 곳과 없는 곳으로만 층이 나뉜다고 여김", correction: "날씨 현상은 대류권과 성층권의 특징 중 일부일 뿐, 전체 4개 층의 분류 기준은 기온 분포입니다." }
+                ]
+            }
+        ];
+
+        let userAnswers = {};
+        const quizContainer = document.getElementById('quizContainer');
+        const finalReportArea = document.getElementById('finalReportArea');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const misconceptionSummary = document.getElementById('misconceptionSummary');
+
+        function renderQuiz() {
+            quizContainer.innerHTML = '';
+            quizData.forEach((q, qIndex) => {
+                let qDiv = document.createElement('div');
+                qDiv.className = "bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4";
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, optIndex) => {
+                    optionsHtml += `
+                        <button onclick="handleAnswer(${qIndex}, ${optIndex})" id="q${qIndex}_opt${optIndex}" 
+                                class="w-full text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-sm font-medium transition flex items-start gap-3">
+                            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 text-xs font-bold">${String.fromCharCode(65 + optIndex)}</span>
+                            <span class="mt-0.5">${opt}</span>
+                        </button>
+                    `;
+                });
+
+                qDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">문항 ${qIndex + 1}</span>
+                        <span id="q${qIndex}_badge" class="text-xs font-semibold hidden"></span>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-base md:text-lg">${q.question}</h3>
+                    <div class="space-y-2.5 pt-2">
+                        ${optionsHtml}
+                    </div>
+                    <div id="q${qIndex}_explanation" class="hidden mt-4 bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide">📋 해설 및 오개념 분석 표</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700">
+                                        <th class="p-2 border border-slate-200">선지</th>
+                                        <th class="p-2 border border-slate-200">정오</th>
+                                        <th class="p-2 border border-slate-200">이 선지를 고르는 학생의 생각</th>
+                                        <th class="p-2 border border-slate-200">바로잡기</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="q${qIndex}_tableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                quizContainer.appendChild(qDiv);
+            });
+        }
+
+        function handleAnswer(qIndex, optIndex) {
+            if (userAnswers[qIndex] !== undefined) return; // Already answered
+
+            userAnswers[qIndex] = optIndex;
+            const q = quizData[qIndex];
+            const isCorrect = (optIndex === q.correctIndex);
+
+            // Highlight buttons
+            q.options.forEach((_, i) => {
+                const btn = document.getElementById(`q${qIndex}_opt${i}`);
+                btn.disabled = true;
+                if (i === q.correctIndex) {
+                    btn.className = "w-full text-left p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-sm font-medium flex items-start gap-3";
+                } else if (i === optIndex && !isCorrect) {
+                    btn.className = "w-full text-left p-3.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-900 text-sm font-medium flex items-start gap-3";
+                } else {
+                    btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-200 bg-white opacity-50 text-sm font-medium flex items-start gap-3";
+                }
+            });
+
+            // Badge
+            const badge = document.getElementById(`q${qIndex}_badge`);
+            badge.classList.remove('hidden');
+            if (isCorrect) {
+                badge.innerText = "정답입니다! 🎉";
+                badge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200";
+            } else {
+                badge.innerText = "오답입니다 💦";
+                badge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200";
+            }
+
+            // Show Explanation Table
+            const expDiv = document.getElementById(`q${qIndex}_explanation`);
+            expDiv.classList.remove('hidden');
+            const tbody = document.getElementById(`q${qIndex}_tableBody`);
+            tbody.innerHTML = '';
+
+            q.explanationTable.forEach((row, rIdx) => {
+                let tr = document.createElement('tr');
+                let rowBg = (rIdx === q.correctIndex) ? "bg-emerald-50/40" : (rIdx === optIndex ? "bg-rose-50/40" : "");
+                tr.className = rowBg;
+                tr.innerHTML = `
+                    <td class="p-2 border border-slate-200 font-medium">${row.option}</td>
+                    <td class="p-2 border border-slate-200 font-bold text-center ${row.isCorrect ? 'text-emerald-600' : 'text-rose-600'}">${row.isCorrect ? '정답' : '오답'}</td>
+                    <td class="p-2 border border-slate-200 text-slate-600">${row.studentThought}</td>
+                    <td class="p-2 border border-slate-200 text-slate-800 font-medium">${row.correction}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Check if all answered
+            if (Object.keys(userAnswers).length === quizData.length) {
+                showFinalReport();
+            }
+        }
+
+        function showFinalReport() {
+            let score = 0;
+            let missedMisconceptions = [];
+            quizData.forEach((q, idx) => {
+                if (userAnswers[idx] === q.correctIndex) {
+                    score++;
+                } else {
+                    missedMisconceptions.push(`• 문항 ${idx + 1} 관련 오개념: "${q.targetMisconception}"`);
+                }
+            });
+
+            finalReportArea.classList.remove('hidden');
+            scoreDisplay.innerText = `${score} / ${quizData.length} 문항 정답 (${score * 33.3}점)`;
+
+            if (missedMisconceptions.length === 0) {
+                misconceptionSummary.innerHTML = `<strong>🏆 완벽합니다!</strong> 모든 문항을 맞추셨으며 기권의 층상 구조와 대기 안정도 개념을 정확히 이해하고 계십니다.`;
+            } else {
+                misconceptionSummary.innerHTML = `
+                    <strong class="text-rose-600 block mb-2">💡 점검이 필요한 오개념 유형 피드백:</strong>
+                    <div class="space-y-1 text-slate-700">${missedMisconceptions.join('<br>')}</div>
+                    <p class="mt-3 text-xs text-slate-500">위 오개념들은 가상실험의 고도 슬라이더를 다시 움직여 보며 원인을 복습해 보세요!</p>
+                `;
+            }
+            
+            // Scroll to report smoothly
+            finalReportArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetQuiz() {
+            userAnswers = {};
+            finalReportArea.classList.add('hidden');
+            renderQuiz();
+        }
+
+        // Initialize Quiz on load
+        renderQuiz();
+    </script>
+</body>
+</html>
